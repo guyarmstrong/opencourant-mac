@@ -14,10 +14,54 @@ jobs:
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0       # history (no file contents) to see what changed
+          filter: blob:none
       - name: Tools and libraries
-        run: brew install gcc cmake boost metis lapack
+        id: tools
+        run: |
+          brew install gcc cmake boost metis lapack
+          v=$( (brew list --versions gcc cmake boost metis lapack; clang --version | head -1) | shasum | cut -c1-12)
+          echo "key=oc-macosa64-$v" >> "$GITHUB_OUTPUT"
+      # Build folders from the last build with the same tools. Every file is
+      # dated 2000, then the files changed since that build are dated now, so
+      # make only recompiles those (Fortran: ccache can't help).
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            starter/cbuild_*
+            engine/cbuild_*
+            reader/cbuild_*
+            extlib
+            .oc-built-sha
+          key: ${{ steps.tools.outputs.key }}-${{ github.sha }}
+          restore-keys: ${{ steps.tools.outputs.key }}-
+      - name: Only changed files rebuild
+        run: |
+          old=$(cat .oc-built-sha 2>/dev/null || true)
+          if [ -n "$old" ] && git cat-file -e "$old^{commit}" 2>/dev/null; then
+            git ls-files -z | xargs -0 touch -h -t 200001010000
+            git diff --name-only --no-renames --diff-filter=d -z "$old" HEAD | xargs -0 -r touch -h
+            echo "Cached build of $old; changed since: $(git diff --name-only --no-renames "$old" HEAD | wc -l) files"
+          else
+            echo "No cached build: full build"
+          fi
       - name: Build
+        id: build
         run: bash Compiling_tools/macos/build_all.sh
+      - name: Keep build folders for next time
+        if: steps.build.outcome == 'success'
+        run: git rev-parse HEAD > .oc-built-sha
+      - uses: actions/cache/save@v4
+        if: steps.build.outcome == 'success'
+        with:
+          path: |
+            starter/cbuild_*
+            engine/cbuild_*
+            reader/cbuild_*
+            extlib
+            .oc-built-sha
+          key: ${{ steps.tools.outputs.key }}-${{ github.sha }}
       - name: Bundle libraries (runs without Homebrew)
         run: bash Compiling_tools/macos/bundle_deps.sh
       - name: Test run (Simflate square pillow, single precision)

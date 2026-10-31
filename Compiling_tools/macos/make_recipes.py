@@ -27,6 +27,12 @@ def read(p):
 def write(p, text):
     full = os.path.join(ROOT, p)
     os.makedirs(os.path.dirname(full), exist_ok=True)
+    # Unchanged files keep their date, so a cached CI build doesn't rebuild.
+    if os.path.exists(full):
+        with open(full, encoding='utf-8', newline='') as f:
+            if f.read() == text:
+                print('unchanged', p)
+                return
     with open(full, 'w', encoding='utf-8', newline='\n') as f:
         f.write(text)
     print('wrote', p)
