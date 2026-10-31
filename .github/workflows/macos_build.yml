@@ -1,7 +1,12 @@
-# OpenCourant for macOS on Apple silicon (macosa64): build with Homebrew GCC,
-# then run a real model through starter and engine. Executables are kept as
-# the run's artifact. Free on public repositories.
-name: macOS build (Apple silicon)
+# OpenCourant for macOS: built with Homebrew GCC on Apple silicon and on Intel,
+# each run through a real model (starter and engine), then joined into one
+# universal set (lipo) for Simflate's universal Mac app. Free on public
+# repositories.
+#
+# The Intel build uses the same recipes (macosa64, from OpenCourant's ARM Linux
+# ones: the only chip-specific flag, -march=armv8-a, is already dropped), so
+# its files carry the macosa64 names too; Simflate renames them when packing.
+name: macOS build
 
 on:
   push:
@@ -10,8 +15,19 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - chip: arm64
+            runner: macos-15
+          - chip: x86_64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 150
+    env:
+      # Our own code runs on macOS 11 (Big Sur) and later.
+      MACOSX_DEPLOYMENT_TARGET: '11.0'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,8 +37,9 @@ jobs:
         id: tools
         run: |
           brew install gcc cmake boost metis lapack
-          v=$( (brew list --versions gcc cmake boost metis lapack; clang --version | head -1) | shasum | cut -c1-12)
-          echo "key=oc-macosa64-$v" >> "$GITHUB_OUTPUT"
+          echo "HOMEBREW_PREFIX=$(brew --prefix)" >> "$GITHUB_ENV"
+          v=$( (brew list --versions gcc cmake boost metis lapack; clang --version | head -1; echo "$MACOSX_DEPLOYMENT_TARGET") | shasum | cut -c1-12)
+          echo "key=oc-macos-${{ matrix.chip }}-$v" >> "$GITHUB_OUTPUT"
       # Build folders from the last build with the same tools. Every file is
       # dated 2000, then the files changed since that build are dated now, so
       # make only recompiles those (Fortran: ccache can't help).
@@ -64,6 +81,10 @@ jobs:
           key: ${{ steps.tools.outputs.key }}-${{ github.sha }}
       - name: Bundle libraries (runs without Homebrew)
         run: bash Compiling_tools/macos/bundle_deps.sh
+      - name: Oldest macOS each file needs
+        run: |
+          cd exec
+          for f in *; do file "$f" | grep -q Mach-O && printf '%-36s %s\n' "$f" "$(vtool -show-build "$f" 2>/dev/null | awk '/minos/{print $2}' | sort -u | tr '\n' ' ')"; done
       # What Simflate packs (scripts/opencourant.mjs pack --mac): programs and
       # libraries, config files, licences and where they came from.
       - name: Package for Simflate
@@ -72,29 +93,23 @@ jobs:
           cp -R exec hm_cfg_files COPYRIGHT.md LICENSE.md simflate/
           rm -rf simflate/exec/.src
           { echo "github.com/${{ github.repository }} commit ${{ github.sha }}, run ${{ github.run_id }}, $(date -u +%Y-%m-%d)"
-            echo "$(sw_vers -productName) $(sw_vers -productVersion), $(uname -m)"
+            echo "$(sw_vers -productName) $(sw_vers -productVersion), $(uname -m), deployment target $MACOSX_DEPLOYMENT_TARGET"
             brew list --versions gcc boost metis lapack; } > simflate/BUILD.txt
           cat simflate/BUILD.txt
       - name: Test run (Simflate square pillow, single precision)
-        timeout-minutes: 15
+        timeout-minutes: 25
         run: |
           mkdir -p run && cp Compiling_tools/macos/test/model.k run/
           cd run
           export RAD_CFG_PATH=$GITHUB_WORKSPACE/hm_cfg_files KMP_STACKSIZE=400m
-          ls $RAD_CFG_PATH | head
-          # First C++ throw, if any: where it comes from.
-          lldb --batch -o "breakpoint set -n __cxa_throw" -o run -o "bt 30" -o "process kill" \
-            -- ../exec/starter_macosa64_gf_sp -i model.k -np 1 2>&1 | tail -60 || true
-          rm -f model_0000.out model_0001.rad
           time ../exec/starter_macosa64_gf_sp -i model.k -np 1 </dev/null | tail -20
           time ../exec/engine_macosa64_gf_sp -i model_0001.rad -nt 3 </dev/null | tail -30
           grep -i "NORMAL TERMINATION\|ERROR" model_0001.out | head
-          ls -la
           grep -q "NORMAL TERMINATION" model_0001.out
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: opencourant-macosa64
+          name: opencourant-macos-${{ matrix.chip }}
           path: |
             exec/
             run/*.out
@@ -102,6 +117,47 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: simflate-opencourant-macos
+          name: simflate-opencourant-macos-${{ matrix.chip }}
           path: simflate/
           if-no-files-found: warn
+
+  # One set for both chips: every program and library joined with lipo.
+  universal:
+    needs: build
+    runs-on: macos-15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: simflate-opencourant-macos-arm64
+          path: arm64
+      - uses: actions/download-artifact@v4
+        with:
+          name: simflate-opencourant-macos-x86_64
+          path: x86_64
+      - name: Join with lipo
+        run: |
+          set -euo pipefail
+          diff <(ls arm64/exec) <(ls x86_64/exec) || { echo "The two builds bundled different files"; exit 1; }
+          cp -R arm64 simflate
+          for f in arm64/exec/*; do
+            b=$(basename "$f")
+            if file "$f" | grep -q Mach-O; then
+              lipo -create "$f" "x86_64/exec/$b" -output "simflate/exec/$b"
+              codesign --force --sign - "simflate/exec/$b"
+            fi
+          done
+          chmod +x simflate/exec/*
+          for f in simflate/exec/*; do printf '%-36s %s\n' "$(basename "$f")" "$(lipo -archs "$f")"; done
+          { head -1 arm64/BUILD.txt | sed 's/$/ (universal: arm64 + x86_64)/'; tail -n +2 arm64/BUILD.txt; echo "-- Intel:"; tail -n +2 x86_64/BUILD.txt; } > simflate/BUILD.txt
+          cat simflate/BUILD.txt
+      - name: Universal starter reads the test model here
+        run: |
+          cd simflate && mkdir run && cd run
+          curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/Compiling_tools/macos/test/model.k" -o model.k
+          RAD_CFG_PATH=$PWD/../hm_cfg_files ../exec/starter_macosa64_gf_sp -i model.k -np 1 </dev/null | tail -5
+          grep -q "NORMAL TERMINATION" model_0000.out
+          cd .. && rm -rf run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: simflate-opencourant-macos-universal
+          path: simflate/
