@@ -5,6 +5,16 @@
 cmake_minimum_required (VERSION 3.15)
 project (Radioss_Starter)
 
+# The in-tree open reader (-open_reader) has neither the newer include / part
+# APIs nor the rigid-part APIs: use the fallbacks below by default with it.
+if(USE_OPEN_READER STREQUAL "1")
+   foreach(opt HM_READER_LEGACY_INCLUDE_API HM_READER_LEGACY_PART_API HM_READER_NO_RBODIES_FROM_RIGID_PARTS)
+      if(NOT DEFINED ${opt})
+         set(${opt} ON)
+      endif()
+   endforeach()
+endif()
+
 # The v82 readers (build 20260918_f907fe76, see reader_components in
 # EXTLIB_VERSION.json) provide the full selection API; the legacy
 # compatibility fallbacks below default OFF. Enable them when building

@@ -1587,6 +1587,9 @@ extern "C"
     void cpp_python_get_nodes(int *nodes_uid_array) {}
     void cpp_python_create_node_mapping(int *itab, int *num_nodes) {}
     void cpp_python_update_nodal_entity(int numnod, int name_len, char *name, my_real *values) {}
+    void cpp_python_update_active_node(int name_len, char *name, double *values) {}
+    void cpp_python_add_ints_to_dict(void *context_ptr, const char *name, int len_name, int *values, int nvalues) {}
+    void cpp_python_add_doubles_to_dict(void *context_ptr, const char *name, int len_name, double *values, int nvalues) {}
     void cpp_python_update_elemental_entity(char *name, my_real value, int uid) {}
     void cpp_python_get_number_elemental_entities(int *nb) {}
     void cpp_python_get_elemental_entity(int nb, char *name, int *uid) {}
