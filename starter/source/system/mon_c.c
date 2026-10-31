@@ -30,7 +30,49 @@
 #endif
 
 
-#if CPP_mach==CPP_linux || CPP_mach == CPP_linux64_spmd || CPP_mach == CPP_p4linux964_spmd || CPP_mach == CPP_il_spmd  || CPP_mach == CPP_il || CPP_mach == CPP_linux_spmd || CPP_mach == CPP_linux  || CPP_mach == CPP_linux964 || CPP_mach == CPP_p4linux964 || CPP_mach == CPP_p4linux932
+#if defined(__APPLE__)
+
+/* macOS (Apple silicon and Intel): the recipes reuse the Linux CPP_mach,
+   but there is no /proc or sysinfo(); sysctl gives the same facts. */
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <sys/utsname.h>
+
+void cpuinfo_c(char *hostname,int *lenhost, char *cputype, int *lencputype, int *frequence,int *memory, int *swap )
+{
+  char brand[128];
+  size_t len;
+  uint64_t hz = 0, mem = 0;
+  struct xsw_usage swp;
+  struct utsname unam;
+
+  gethostname(hostname, 256);
+  *lenhost = strlen(hostname);
+
+  len = sizeof(brand);
+  if (sysctlbyname("machdep.cpu.brand_string", brand, &len, NULL, 0) != 0) strcpy(brand, "Unknown");
+  uname(&unam);
+  snprintf(cputype, 200, "%s (%s)", brand, unam.machine);
+  *lencputype = strlen(cputype);
+
+  /* Apple silicon has no hw.cpufrequency */
+  len = sizeof(hz);
+  *frequence = sysctlbyname("hw.cpufrequency", &hz, &len, NULL, 0) == 0 ? (int)(hz / 1000000) : -1;
+
+  len = sizeof(mem);
+  *memory = sysctlbyname("hw.memsize", &mem, &len, NULL, 0) == 0 ? (int)(mem / (1024 * 1024)) : -1;
+
+  len = sizeof(swp);
+  *swap = sysctlbyname("vm.swapusage", &swp, &len, NULL, 0) == 0 ? (int)(swp.xsu_avail / (1024 * 1024)) : -1;
+}
+
+#elif CPP_mach==CPP_linux || CPP_mach == CPP_linux64_spmd || CPP_mach == CPP_p4linux964_spmd || CPP_mach == CPP_il_spmd  || CPP_mach == CPP_il || CPP_mach == CPP_linux_spmd || CPP_mach == CPP_linux  || CPP_mach == CPP_linux964 || CPP_mach == CPP_p4linux964 || CPP_mach == CPP_p4linux932
 
 /* Linux : X86, X86-64, IA64*/
 

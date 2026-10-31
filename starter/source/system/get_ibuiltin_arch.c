@@ -41,7 +41,7 @@
 /* ---------------- */
 /* Define ARCH_TYPE */
 /* ---------------- */
-#ifdef __unix
+#if defined(__unix) || defined(__APPLE__)
 
 #ifdef __x86_64
 #define ARCH_TYPE 1
@@ -61,7 +61,7 @@
 /* Define ARCH_TYPE */
 /* ---------------- */
 
-#ifdef __unix
+#if defined(__unix) || defined(__APPLE__)
 #define OS_TYPE 1
 #endif
 
@@ -127,6 +127,7 @@ int parse_cpuinfo(){
   int instruction_set=0;
 
   stream=fopen("/proc/cpuinfo","r");
+  if (stream == NULL) return 0;
   unknown = 1;
   while (fgets(ligne,2048,stream) && unknown){
     if (strncmp(compstr,ligne,cmplen)==0){

@@ -25,7 +25,7 @@
 #include <math.h>
 #include <fcntl.h>
 
-#if CPP_mach != CPP_macosx64
+#if CPP_mach != CPP_macosx64 && !defined(__APPLE__)
 #include <malloc.h>
 #endif
 

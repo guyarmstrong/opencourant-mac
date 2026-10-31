@@ -47,6 +47,7 @@ void map_memory(int * VmPeak, int *VmSize,int *VmRSS,int *VmHWM,int *VmStk )
 
   sprintf(fil,"/proc/%i/status",pid);
   stream = fopen(fil,"r");
+  if (stream == NULL) stream = fopen("/dev/null","r");
 
   *VmPeak=-1;
   *VmSize=-1;
@@ -97,6 +98,7 @@ void memory_stats_c_()
 
   sprintf(fil,"/proc/%i/status",pid);
   stream = fopen(fil,"r");
+  if (stream == NULL) stream = fopen("/dev/null","r");
   VmP=0;
   VmS=0;
   while (fgets(line,512,stream)){
@@ -140,6 +142,7 @@ void memory_use_c(int *memsize)
 
   sprintf(fil,"/proc/%i/status",pid);
   stream = fopen(fil,"r");
+  if (stream == NULL) stream = fopen("/dev/null","r");
   VmP=0;
   VmS=0;
   while (fgets(line,512,stream)){
