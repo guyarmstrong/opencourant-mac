@@ -171,6 +171,7 @@ void MvFileFormatMap_t::InitStrFileFormatMap() {
   myStrFileFormatMap["radioss2024"] = FF_D00_2024;
   myStrFileFormatMap["radioss2025"] = FF_D00_2025;
   myStrFileFormatMap["radioss2026"] = FF_D00_2026;
+  myStrFileFormatMap["radioss2612"] = FF_D00_2612;
   myStrFileFormatMap["D00_LAST"]   = FF_D00_LAST;
   myStrFileFormatMap["DYNA"]       = FF_DYNA;
   myStrFileFormatMap["Keyword970"]    = FF_971R4; 
@@ -239,6 +240,7 @@ void MvFileFormatMap_t::InitFormat2VersionMap() {
   myFormat2VersionMap[FF_D00_2024]   = "radioss2024";
   myFormat2VersionMap[FF_D00_2025]   = "radioss2025";
   myFormat2VersionMap[FF_D00_2026]   = "radioss2026";
+  myFormat2VersionMap[FF_D00_2612]   = "radioss2612";
 }
 
 
@@ -272,6 +274,7 @@ void MvFileFormatMap_t::InitVersion2FormatMap() {
   myVersion2FormatMap["radioss2024"] = FF_D00_2024;
   myVersion2FormatMap["radioss2025"] = FF_D00_2025;
   myVersion2FormatMap["radioss2026"] = FF_D00_2026;
+  myVersion2FormatMap["radioss2612"] = FF_D00_2612;
 }
 
 

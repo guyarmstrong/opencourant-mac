@@ -64,7 +64,19 @@ jobs:
           key: ${{ steps.tools.outputs.key }}-${{ github.sha }}
       - name: Bundle libraries (runs without Homebrew)
         run: bash Compiling_tools/macos/bundle_deps.sh
+      # What Simflate packs (scripts/opencourant.mjs pack --mac): programs and
+      # libraries, config files, licences and where they came from.
+      - name: Package for Simflate
+        run: |
+          mkdir -p simflate
+          cp -R exec hm_cfg_files COPYRIGHT.md LICENSE.md simflate/
+          rm -rf simflate/exec/.src
+          { echo "github.com/${{ github.repository }} commit ${{ github.sha }}, run ${{ github.run_id }}, $(date -u +%Y-%m-%d)"
+            echo "$(sw_vers -productName) $(sw_vers -productVersion), $(uname -m)"
+            brew list --versions gcc boost metis lapack; } > simflate/BUILD.txt
+          cat simflate/BUILD.txt
       - name: Test run (Simflate square pillow, single precision)
+        timeout-minutes: 15
         run: |
           mkdir -p run && cp Compiling_tools/macos/test/model.k run/
           cd run
@@ -74,8 +86,8 @@ jobs:
           lldb --batch -o "breakpoint set -n __cxa_throw" -o run -o "bt 30" -o "process kill" \
             -- ../exec/starter_macosa64_gf_sp -i model.k -np 1 2>&1 | tail -60 || true
           rm -f model_0000.out model_0001.rad
-          time ../exec/starter_macosa64_gf_sp -i model.k -np 1 | tail -20
-          time ../exec/engine_macosa64_gf_sp -i model_0001.rad -nt 3 | tail -30
+          time ../exec/starter_macosa64_gf_sp -i model.k -np 1 </dev/null | tail -20
+          time ../exec/engine_macosa64_gf_sp -i model_0001.rad -nt 3 </dev/null | tail -30
           grep -i "NORMAL TERMINATION\|ERROR" model_0001.out | head
           ls -la
           grep -q "NORMAL TERMINATION" model_0001.out
@@ -86,4 +98,10 @@ jobs:
           path: |
             exec/
             run/*.out
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: simflate-opencourant-macos
+          path: simflate/
           if-no-files-found: warn
