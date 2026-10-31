@@ -34,6 +34,8 @@
 #include <HCDI/hcdi_mv_descriptor.h>
 #include <HCDI/hcdi_multicfgkernelmgr.h>
 
+#include <KERNEL/mv_file_format.h>
+
 static void GetCurrentRadiossStrVersion(int version, std::string& rad_version)
 {
     if (version >= 110)
@@ -42,6 +44,14 @@ static void GetCurrentRadiossStrVersion(int version, std::string& rad_version)
     }
     else
         rad_version = "radioss110";
+    // A starter newer than this reader (e.g. 2612) asks for a format the reader
+    // has no CFG kernel for: no kernel loads and reading stops with "CFG Kernel
+    // Not Loaded". Use the newest format the reader knows instead.
+    if (MV_get_file_format(rad_version) == FF_UNKNOWN)
+    {
+        printf(" .. READER: no %s format, using radioss2026\n", rad_version.c_str());
+        rad_version = "radioss2026";
+    }
 }
 
 #include "radiossblk.h"
