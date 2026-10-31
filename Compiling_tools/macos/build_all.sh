@@ -8,6 +8,8 @@
 #   THREADS      parallel build jobs                            (default: all cores)
 #   PREC         sp | dp                                        (default: sp)
 #   TOOLS_REF    OpenCourant/Tools commit for anim_to_vtk       (default: main)
+#   OC_FC / OC_CC / OC_CXX  compilers (default: Homebrew gfortran / gcc-NN / g++-NN)
+#   OC_CXX_LIB   C++ runtime of OC_CXX                          (default: -lstdc++; conda g++: -lc++)
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 root=$PWD

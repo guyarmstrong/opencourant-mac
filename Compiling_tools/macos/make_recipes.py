@@ -102,6 +102,15 @@ LIBS = {
 }
 
 
+CXX_LIB = '''
+if (DEFINED ENV{OC_CXX_LIB})
+  set (cxx_lib "$ENV{OC_CXX_LIB}")
+else ()
+  set (cxx_lib "-lstdc++")
+endif ()
+'''
+
+
 def mac_recipe(t, prog):
     t = t.replace(' -march=armv8-a', '').replace('-march=armv8-a ', '')
     for old, new in LIBS.items():
@@ -116,6 +125,10 @@ def mac_recipe(t, prog):
     # Mach-O: no -no-pie / -rdynamic; librt is part of libSystem.
     t = t.replace(' -rdynamic', '').replace('"-rdynamic ', '"').replace(' -no-pie', '')
     t = t.replace(' -lrt', '').replace('set (LINK "rt ', 'set (LINK "')
+    # C++ runtime of the chosen g++: libstdc++ (Homebrew GCC) unless OC_CXX_LIB
+    # names another (conda-forge g++ on macOS uses libc++: OC_CXX_LIB=-lc++).
+    if '-lstdc++' in t:
+        t = CXX_LIB + t.replace('-lstdc++', '${cxx_lib}')
     if 'linuxa64' in t:
         left = sorted(set(re.findall(r'\S*linuxa64\S*', t)))
         sys.exit(f'make_recipes: {prog}: still mentions linuxa64: {left}')
