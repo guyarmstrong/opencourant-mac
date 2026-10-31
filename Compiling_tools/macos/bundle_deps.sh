@@ -11,10 +11,19 @@ is_system() { case "$1" in /usr/lib/*|/System/*) return 0;; *) return 1;; esac; 
 # Non-system dependencies of one Mach-O file (install names as written).
 deps() { otool -L "$1" | tail -n +2 | awk '{print $1}' | while read -r d; do is_system "$d" || echo "$d"; done; }
 
-# Resolve an install name to a file on this machine.
+# Where each bundled library came from (relative names in it are resolved there).
+mkdir -p .src
+
+# Resolve install name $1, needed by bundled file $2, to a file on this machine.
 resolve() {
+  local b; b=$(basename "$1")
   case "$1" in
-    @rpath/*|@loader_path/*|@executable_path/*) [ -f "./$(basename "$1")" ] && echo "./$(basename "$1")" ;;
+    @rpath/*|@loader_path/*|@executable_path/*)
+      if [ -f "./$b" ]; then echo "./$b"; return; fi
+      if [ -f ".src/$2" ] && [ -f "$(cat ".src/$2")/$b" ]; then echo "$(cat ".src/$2")/$b"; return; fi
+      for d in "${HOMEBREW_PREFIX:-/opt/homebrew}/lib" "${OC_MAC_DEPS:-/nonexistent}/lib"; do
+        if [ -f "$d/$b" ]; then echo "$d/$b"; return; fi
+      done ;;
     *) [ -f "$1" ] && echo "$1" ;;
   esac
 }
@@ -29,9 +38,10 @@ while [ $changed = 1 ]; do
     for d in $(deps "$f"); do
       b=$(basename "$d")
       if [ ! -f "$b" ]; then
-        src=$(resolve "$d") || true
+        src=$(resolve "$d" "$f") || true
         [ -n "$src" ] || { echo "bundle_deps: cannot find $d (needed by $f)"; exit 1; }
         cp -L "$src" "$b"
+        dirname "$(cd "$(dirname "$src")" && pwd -P)/$(basename "$src")" > ".src/$b"
         chmod u+w "$b"
         echo "bundled $b  <- $src"
         changed=1
@@ -57,6 +67,7 @@ for f in *; do
   codesign --force --sign - "$f" 2>/dev/null
 done
 
+rm -rf .src
 echo "== bundled:"
 for f in *; do
   file "$f" | grep -q Mach-O || continue
