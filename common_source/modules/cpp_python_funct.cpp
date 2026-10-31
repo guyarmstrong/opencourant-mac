@@ -1588,6 +1588,12 @@ extern "C"
     void cpp_python_create_node_mapping(int *itab, int *num_nodes) {}
     void cpp_python_update_nodal_entity(int numnod, int name_len, char *name, my_real *values) {}
     void cpp_python_update_active_node(int name_len, char *name, double *values) {}
+    void cpp_python_update_active_node_ids(int id, int uid) {}
+    void cpp_python_update_reals(char *basename, int *uid, my_real *reals, int num_reals) {}
+    void *cpp_python_create_context() { return nullptr; }
+    void cpp_python_free_context(void *context) {}
+    void cpp_python_initialize_global_variables() {}
+    void cpp_python_sync(void *pcontext) {}
     void cpp_python_add_ints_to_dict(void *context_ptr, const char *name, int len_name, int *values, int nvalues) {}
     void cpp_python_add_doubles_to_dict(void *context_ptr, const char *name, int len_name, double *values, int nvalues) {}
     void cpp_python_update_elemental_entity(char *name, my_real value, int uid) {}
