@@ -20,6 +20,10 @@
 //Copyright>        copyright and attribution statement.
 
 #include <checksum_output_files.h>
+#if defined(__APPLE__) && !defined(htobe64)
+#include <libkern/OSByteOrder.h>
+#define htobe64(x) OSSwapHostToBigInt64(x)
+#endif
   // -----------------------------------------------------------------------------------
   // Dos2Unix : function to remove (cr) characters from a string
   // -----------------------------------------------------------------------------------

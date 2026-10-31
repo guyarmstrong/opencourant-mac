@@ -30,6 +30,13 @@
 #include <regex>
 #include <iomanip>
 #include <limits>
+#ifdef MYREAL8
+// double precision define my_real as double
+typedef double my_real;
+#else
+typedef float my_real;
+#endif
+
 #ifndef PYTHON_DISABLED
 #ifdef _WIN32
 /* Windows includes */
@@ -38,13 +45,6 @@
 #else
 #include <dlfcn.h>
 #include <dirent.h>
-#endif
-
-#ifdef MYREAL8
-// double precision define my_real as double
-typedef double my_real;
-#else
-typedef float my_real;
 #endif
 
 #include "cpp_python_funct.h"
