@@ -18,16 +18,23 @@ jobs:
         run: brew install gcc cmake boost metis lapack
       - name: Build
         run: bash Compiling_tools/macos/build_all.sh
+      - name: Bundle libraries (runs without Homebrew)
+        run: bash Compiling_tools/macos/bundle_deps.sh
       - name: Test run (Simflate square pillow, single precision)
         run: |
           mkdir -p run && cp Compiling_tools/macos/test/model.k run/
           cd run
           export RAD_CFG_PATH=$GITHUB_WORKSPACE/hm_cfg_files KMP_STACKSIZE=400m
-          export DYLD_LIBRARY_PATH=$GITHUB_WORKSPACE/exec
+          ls $RAD_CFG_PATH | head
+          # First C++ throw, if any: where it comes from.
+          lldb --batch -o "breakpoint set -n __cxa_throw" -o run -o "bt 30" -o "process kill" \
+            -- ../exec/starter_macosa64_gf_sp -i model.k -np 1 2>&1 | tail -60 || true
+          rm -f model_0000.out model_0001.rad
           time ../exec/starter_macosa64_gf_sp -i model.k -np 1 | tail -20
           time ../exec/engine_macosa64_gf_sp -i model_0001.rad -nt 3 | tail -30
           grep -i "NORMAL TERMINATION\|ERROR" model_0001.out | head
           ls -la
+          grep -q "NORMAL TERMINATION" model_0001.out
       - uses: actions/upload-artifact@v4
         if: always()
         with:
