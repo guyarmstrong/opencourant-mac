@@ -20,6 +20,10 @@
 //Copyright>        copyright and attribution statement.
 #include "hardware.inc"
 #include <dyn_userlib.h>
+/* macOS has no RTLD_DEEPBIND (its two-level namespaces already keep libraries apart) */
+#ifndef RTLD_DEEPBIND
+#define RTLD_DEEPBIND 0
+#endif
 
 
 void st_array_init_(){
