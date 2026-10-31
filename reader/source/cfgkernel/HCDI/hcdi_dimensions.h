@@ -50,7 +50,7 @@ template <class ENTITYREAD, class IDENTIFIER, class VALUE, class VALUEENTITY, cl
 static bool HCDI_GetDimensionFromFeature(
     const IDescriptor* pDescr, const MvDataFeature_t* pFeature, vector<pair<MvDimension_e, vector<string>>>& dim_lst, int ikeyword, int index, IdenKeyType keytype);
 
-static bool HCDI_GetDimension(const IDescriptor* pDescr, map<const IDescriptor*, map<const string, vector<pair<MvDimension_e, vector<string>>>>> &desc_dim_map, IdenKeyType keytype);
+static bool HCDI_GetDimension(const IDescriptor* pDescr, map<const IDescriptor*, map<string, vector<pair<MvDimension_e, vector<string>>>>> &desc_dim_map, IdenKeyType keytype);
 
 static bool hcdi_eval_int(int lvalue, comparator_e op, int rvalue) {
     switch (op) {
@@ -749,7 +749,7 @@ static bool HCDI_GetDimensionFromFeature(
 }
 
 static bool HCDI_GetDimensionFromFeature(
-    const IDescriptor* pDescr, const MvDataFeature_t* pFeature, map<const IDescriptor *, map<const string,
+    const IDescriptor* pDescr, const MvDataFeature_t* pFeature, map<const IDescriptor *, map<string,
     vector<pair<MvDimension_e, vector<string>>>>>& desc_dim_map, int ikeyword, IdenKeyType keytype)
 {
     if (!pFeature)
@@ -757,7 +757,7 @@ static bool HCDI_GetDimensionFromFeature(
     MvDimension_e dimension = UDI_UNKNOWN;
     vector<string> arg_vect;
     vector<pair<MvDimension_e, vector<string>>> dim_lst;
-    map<const string, vector<pair<MvDimension_e, vector<string>>>> dim_map;
+    map<string, vector<pair<MvDimension_e, vector<string>>>> dim_map;
     const string a_skeyword = pDescr->getSKeyword(ikeyword);
     switch (pFeature->getType())
     {
@@ -969,7 +969,7 @@ static bool HCDI_GetDimensionFromFeature(
     return true;
 }
 
-static bool HCDI_GetDimension(const IDescriptor* pDescr, map<const IDescriptor *, map<const string, vector<pair<MvDimension_e, vector<string>>>>> &desc_dim_map, IdenKeyType keytype)
+static bool HCDI_GetDimension(const IDescriptor* pDescr, map<const IDescriptor *, map<string, vector<pair<MvDimension_e, vector<string>>>>> &desc_dim_map, IdenKeyType keytype)
 {
     bool ret_type = false;
     int domains = DOM_COMMON;

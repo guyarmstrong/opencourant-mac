@@ -48,6 +48,8 @@
 #define _HC_LONG_
 #if defined _WIN32 || defined WIN32 || defined _WIN64 || defined WIN64
     typedef __int64 _HC_LONG;
+#elif defined(__APPLE__)
+    typedef off_t _HC_LONG;
 #elif LINUX
     typedef __off64_t _HC_LONG;
 #endif

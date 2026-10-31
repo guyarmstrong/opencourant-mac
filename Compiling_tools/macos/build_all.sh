@@ -34,8 +34,11 @@ clang -O2 -Iextlib/md5/include Compiling_tools/macos/md5.c Compiling_tools/macos
 build_macos/md5_test
 
 # Starter (builds the open reader first, -open_reader) and engine.
-(cd starter && ./build_script.sh -arch=macosa64_gf -prec=$prec -open_reader -release -no-python -nt=$threads)
-(cd engine && ./build_script.sh -arch=macosa64_gf -prec=$prec -release -no-python -nt=$threads)
+# Both are built even if one fails, so one run reports the errors of each.
+failed=""
+(cd starter && ./build_script.sh -arch=macosa64_gf -prec=$prec -open_reader -release -no-python -nt=$threads) || failed="$failed starter"
+(cd engine && ./build_script.sh -arch=macosa64_gf -prec=$prec -release -no-python -nt=$threads) || failed="$failed engine"
+if [ -n "$failed" ]; then echo "== build failed:$failed"; exit 1; fi
 
 # anim_to_vtk: one C++ file in OpenCourant/Tools.
 curl -fsSL "https://raw.githubusercontent.com/OpenCourant/Tools/${TOOLS_REF:-main}/output_converters/anim_to_vtk/src/anim_to_vtk.cpp" -o build_macos/anim_to_vtk.cpp

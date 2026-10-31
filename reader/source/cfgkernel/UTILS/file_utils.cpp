@@ -67,6 +67,8 @@ int _HC_FSEEK(FILE *stream, _HC_LONG offset, int whence)
 {
 #if defined _WIN32 || defined WIN32 || defined _WIN64 || defined WIN64
     return _fseeki64(stream, offset, whence);
+#elif defined(__APPLE__)
+    return fseeko(stream, offset, whence);
 #elif LINUX
     return fseeko64(stream, offset, whence);
 #endif
@@ -78,6 +80,8 @@ _HC_LONG _HC_FTELL(FILE *stream)
    _HC_LONG f_pos = 0 ;
 #if defined _WIN32 || defined WIN32 || defined _WIN64 || defined WIN64
     return _ftelli64(stream);
+#elif defined(__APPLE__)
+    return ftello(stream);
 #elif LINUX
     return ftello64(stream);
 #endif
