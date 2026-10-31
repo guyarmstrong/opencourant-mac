@@ -44,7 +44,7 @@ if [ -n "$failed" ]; then echo "== build failed:$failed"; exit 1; fi
 
 # anim_to_vtk: one C++ file in OpenCourant/Tools.
 curl -fsSL "https://raw.githubusercontent.com/OpenCourant/Tools/${TOOLS_REF:-main}/output_converters/anim_to_vtk/src/anim_to_vtk.cpp" -o build_macos/anim_to_vtk.cpp
-clang++ -O2 -DLINUX -o exec/anim_to_vtk_macosa64 build_macos/anim_to_vtk.cpp
+clang++ -O2 -DLINUX -include Compiling_tools/macos/endian_compat.h -o exec/anim_to_vtk_macosa64 build_macos/anim_to_vtk.cpp
 
 echo "== built:"
 ls -la exec/
