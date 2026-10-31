@@ -79,6 +79,9 @@ if (com STREQUAL "0")
    set (link_library_name "open_reader_${arch}" )
    add_library(${link_library_name} SHARED $<TARGET_OBJECTS:solver_interface_${arch}> )
 
+   if (NOT DEFINED boost_fs_lib)
+      set (boost_fs_lib ${open_reader_root_dir}/../extlib/boost/boost_1_70_0/static/lib/${arch}/libboost_filesystem.${lib})
+   endif()
    target_link_libraries(${link_library_name}
                       solver_interface_${arch}
                       dyna2rad_${arch}
@@ -86,7 +89,7 @@ if (com STREQUAL "0")
                       sdi_${arch}
                       cfgio_${arch}
 		              cfgkernel_${arch}
-                      ${open_reader_root_dir}/../extlib/boost/boost_1_70_0/static/lib/${arch}/libboost_filesystem.${lib})
+                      ${boost_fs_lib})
 
 
 

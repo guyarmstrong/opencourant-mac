@@ -68,7 +68,10 @@ ad=none
 use_openreader=0
 orb=""
 
-if [ "`uname -m`" == "x86_64" ]
+if [ "`uname -s`" == "Darwin" ]
+then
+  built_in_arch=macosa64
+elif [ "`uname -m`" == "x86_64" ]
 then
   built_in_arch=linux64
 else

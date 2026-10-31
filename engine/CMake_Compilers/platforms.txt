@@ -16,3 +16,4 @@
          -arch=win64       -mpi=impi     (Intel MPI OneAPI executable / Intel OneAPI ifx / Windows X86-64)
          -arch=win64_ifort               (SMP executable / Intel OneAPI Legacy / Windows X86-64)
          -arch=win64_ifort -mpi=impi     (Intel MPI OneAPI executable / Intel OneAPI Legacy / Windows X86-64)
+         -arch=macosa64_gf   (SMP executable / macOS Apple silicon - Homebrew GCC; link with -open_reader)

@@ -1,0 +1,38 @@
+# OpenCourant for macOS on Apple silicon (macosa64): build with Homebrew GCC,
+# then run a real model through starter and engine. Executables are kept as
+# the run's artifact. Free on public repositories.
+name: macOS build (Apple silicon)
+
+on:
+  push:
+    branches: [macos]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools and libraries
+        run: brew install gcc cmake boost metis lapack
+      - name: Build
+        run: bash Compiling_tools/macos/build_all.sh
+      - name: Test run (Simflate square pillow, single precision)
+        run: |
+          mkdir -p run && cp Compiling_tools/macos/test/model.k run/
+          cd run
+          export RAD_CFG_PATH=$GITHUB_WORKSPACE/hm_cfg_files KMP_STACKSIZE=400m
+          export DYLD_LIBRARY_PATH=$GITHUB_WORKSPACE/exec
+          time ../exec/starter_macosa64_gf_sp -i model.k -np 1 | tail -20
+          time ../exec/engine_macosa64_gf_sp -i model_0001.rad -nt 3 | tail -30
+          grep -i "NORMAL TERMINATION\|ERROR" model_0001.out | head
+          ls -la
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: opencourant-macosa64
+          path: |
+            exec/
+            run/*.out
+          if-no-files-found: warn

@@ -9,7 +9,8 @@ function my_help()
   echo " Use with arguments : "
   echo " -arch=[build architecture]"
   echo "          linux64  : X86_64 Linux"
-  echo "          linuxa64 : ARM64" 
+  echo "          linuxa64 : ARM64"
+  echo "          macosa64 : macOS Apple silicon (clang)" 
   echo " " 
   echo " Execution control"
   echo " -nt=[threads]      : number of threads for build "
@@ -117,7 +118,7 @@ fi
 
 cd ${build_directory}
 
-cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -Darch=${arch}  -Dcom=${com} ..
+cmake -DCMAKE_CXX_COMPILER=${CXX:-g++} -DCMAKE_C_COMPILER=${CC:-gcc} -Darch=${arch}  -Dcom=${com} ..
 return_value=$?
 if [ $return_value -ne 0 ]
 then
