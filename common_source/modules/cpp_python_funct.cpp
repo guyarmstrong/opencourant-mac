@@ -1582,7 +1582,7 @@ extern "C"
         //        std::cout << "ERROR: python not enabled" << std::endl;
     }
     void cpp_python_update_time(double TIME, double DT) {}
-    void cpp_python_get_number_of_nodes(int *num_nodes) {}
+    void cpp_python_get_number_of_nodes(int *num_nodes) { *num_nodes = 0; }
     // return the list of nodes (user ids) that are used in the python functions
     void cpp_python_get_nodes(int *nodes_uid_array) {}
     void cpp_python_create_node_mapping(int *itab, int *num_nodes) {}
@@ -1597,7 +1597,7 @@ extern "C"
     void cpp_python_add_ints_to_dict(void *context_ptr, const char *name, int len_name, int *values, int nvalues) {}
     void cpp_python_add_doubles_to_dict(void *context_ptr, const char *name, int len_name, double *values, int nvalues) {}
     void cpp_python_update_elemental_entity(char *name, my_real value, int uid) {}
-    void cpp_python_get_number_elemental_entities(int *nb) {}
+    void cpp_python_get_number_elemental_entities(int *nb) { *nb = 0; }
     void cpp_python_get_elemental_entity(int nb, char *name, int *uid) {}
     void cpp_python_load_environment() {}
     void cpp_python_update_sensors(int types, int *uids, int *statuses, double *results, int *num_sensors) {}
