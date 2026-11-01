@@ -1,6 +1,5 @@
-# Diagnostic only, on its own branch: the unset node count in the Apple-silicon
-# starter that shipped in Simflate 1.1.2, read at the moment the stub is called.
-name: Apple silicon count check
+# Diagnostic only, on its own branch: repeat runs and settings on the fixed build.
+name: Result comparison
 on:
   push:
     branches: [intel-diag]
@@ -8,36 +7,41 @@ permissions:
   actions: read
   contents: read
 jobs:
-  check:
+  compare:
     strategy:
       fail-fast: false
       matrix:
-        runner: [macos-15, macos-14]
+        include:
+          - chip: arm64
+            runner: macos-15
+            parallel: '0'
+            runs: a3:3 b3:3 a1:1 b1:1
+          - chip: x86_64
+            runner: macos-15-intel
+            parallel: '1'
+            runs: a1:1 b1:1 f1:1:ftz
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 20
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
             Compiling_tools/macos
           filter: blob:none
-      - name: Shipped programs
+      - name: Programs from the fixed build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run download 41218041420 -R ${{ github.repository }} -n simflate-opencourant-macos -D pkg
+          gh run download 41335588534 -R ${{ github.repository }} -n simflate-opencourant-macos-${{ matrix.chip }} -D pkg
           chmod +x pkg/exec/*
-          cat pkg/BUILD.txt
-          sysctl -n machdep.cpu.brand_string; sw_vers -productVersion
-      - name: Read the count
-        timeout-minutes: 6
-        run: |
-          mkdir r && cp Compiling_tools/macos/test/model.k r/ && cd r
-          export RAD_CFG_PATH=$GITHUB_WORKSPACE/pkg/hm_cfg_files KMP_STACKSIZE=400m
-          for i in 1 2 3; do
-            /usr/bin/time -p ../pkg/exec/starter_macosa64_gf_sp -i model.k -np 1 </dev/null 2>&1 >/dev/null | tr '\n' ' '; echo
-          done
-          lldb -b -o 'breakpoint set -n cpp_python_get_number_of_nodes' \
-            -o 'process launch -i /dev/null -o /dev/null -e /dev/null' \
-            -o 'memory read -s4 -fd -c1 $x0' -o 'kill' \
-            -- ../pkg/exec/starter_macosa64_gf_sp -i model.k -np 1 </dev/null 2>&1 | tail -12
+          if [ "${{ matrix.chip }}" = x86_64 ]; then clang -O1 -dynamiclib -o ftz.dylib Compiling_tools/macos/diag/ftz.c; fi
+      - name: Full runs
+        timeout-minutes: 130
+        env:
+          PARALLEL: ${{ matrix.parallel }}
+        run: bash Compiling_tools/macos/diag/run.sh ${{ matrix.runs }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compare-${{ matrix.chip }}
+          path: results/
