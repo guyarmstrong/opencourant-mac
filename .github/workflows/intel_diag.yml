@@ -1,0 +1,45 @@
+# Diagnostic only, on its own branch: profiles the Intel build from an earlier
+# macos branch run. Nothing is compiled except a small flush-to-zero test library.
+name: Intel diagnostics
+on:
+  push:
+    branches: [intel-diag]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  diag:
+    runs-on: macos-15-intel
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Compiling_tools/macos
+          filter: blob:none
+      - name: Machine
+        run: |
+          sysctl -n machdep.cpu.brand_string hw.ncpu hw.physicalcpu hw.memsize
+          sysctl -n machdep.cpu.features machdep.cpu.leaf7_features
+          sw_vers
+      - name: Programs from the macos branch build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 41244231779 -R ${{ github.repository }} -n simflate-opencourant-macos-x86_64 -D pkg
+          chmod +x pkg/exec/*
+          cat pkg/BUILD.txt
+          clang -O1 -dynamiclib -o ftz.dylib Compiling_tools/macos/diag/ftz.c
+      - name: Time and profile
+        timeout-minutes: 60
+        env:
+          ENGINE_SECS: '120'
+        run: bash Compiling_tools/macos/diag/run.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: intel-diag
+          path: |
+            results/
+            s_plain/*.out
+            s_ftz/*.out
