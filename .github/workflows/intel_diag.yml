@@ -1,6 +1,6 @@
-# Diagnostic only, on its own branch: profiles the Intel build from an earlier
-# macos branch run. Nothing is compiled except a small flush-to-zero test library.
-name: Intel diagnostics
+# Diagnostic only, on its own branch: the unset node count in the Apple-silicon
+# starter that shipped in Simflate 1.1.2, read at the moment the stub is called.
+name: Apple silicon count check
 on:
   push:
     branches: [intel-diag]
@@ -8,38 +8,36 @@ permissions:
   actions: read
   contents: read
 jobs:
-  diag:
-    runs-on: macos-15-intel
-    timeout-minutes: 90
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-14]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
             Compiling_tools/macos
           filter: blob:none
-      - name: Machine
-        run: |
-          sysctl -n machdep.cpu.brand_string hw.ncpu hw.physicalcpu hw.memsize
-          sysctl -n machdep.cpu.features machdep.cpu.leaf7_features
-          sw_vers
-      - name: Programs from the macos branch build
+      - name: Shipped programs
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run download 41244231779 -R ${{ github.repository }} -n simflate-opencourant-macos-x86_64 -D pkg
+          gh run download 41218041420 -R ${{ github.repository }} -n simflate-opencourant-macos-arm64 -D pkg
           chmod +x pkg/exec/*
           cat pkg/BUILD.txt
-          clang -O1 -dynamiclib -o ftz.dylib Compiling_tools/macos/diag/ftz.c
-      - name: Time and profile
-        timeout-minutes: 60
-        env:
-          ENGINE_SECS: '120'
-        run: bash Compiling_tools/macos/diag/run.sh
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: intel-diag
-          path: |
-            results/
-            s_plain/*.out
-            s_ftz/*.out
+          sysctl -n machdep.cpu.brand_string; sw_vers -productVersion
+      - name: Read the count
+        timeout-minutes: 6
+        run: |
+          mkdir r && cp Compiling_tools/macos/test/model.k r/ && cd r
+          export RAD_CFG_PATH=$GITHUB_WORKSPACE/pkg/hm_cfg_files KMP_STACKSIZE=400m
+          for i in 1 2 3; do
+            /usr/bin/time -p ../pkg/exec/starter_macosa64_gf_sp -i model.k -np 1 </dev/null 2>&1 >/dev/null | tr '\n' ' '; echo
+          done
+          lldb -b -o 'breakpoint set -n cpp_python_get_number_of_nodes' \
+            -o 'process launch -i /dev/null -o /dev/null -e /dev/null' \
+            -o 'memory read -s4 -fd -c1 $x0' -o 'kill' \
+            -- ../pkg/exec/starter_macosa64_gf_sp -i model.k -np 1 </dev/null 2>&1 | tail -12
