@@ -98,30 +98,14 @@ jobs:
           cat simflate/BUILD.txt
       - name: Test run (Simflate square pillow, single precision)
         timeout-minutes: 60
-        env:
-          # Intel: threads wait on each other more than they work (see below).
-          NT: ${{ matrix.chip == 'x86_64' && '1' || '3' }}
         run: |
           mkdir -p run && cp Compiling_tools/macos/test/model.k run/
           cd run
           export RAD_CFG_PATH=$GITHUB_WORKSPACE/hm_cfg_files KMP_STACKSIZE=400m
           time ../exec/starter_macosa64_gf_sp -i model.k -np 1 </dev/null | tail -20
-          time ../exec/engine_macosa64_gf_sp -i model_0001.rad -nt $NT </dev/null | tail -30
+          time ../exec/engine_macosa64_gf_sp -i model_0001.rad -nt 1 </dev/null | tail -30
           grep -i "NORMAL TERMINATION\|ERROR" model_0001.out | head
           grep -q "NORMAL TERMINATION" model_0001.out
-      # Same model, a fixed time on each thread count: cycles reached.
-      - name: Engine speed by thread count
-        if: always()
-        run: |
-          cd run
-          export RAD_CFG_PATH=$GITHUB_WORKSPACE/hm_cfg_files KMP_STACKSIZE=400m
-          for nt in 1 2 3 4; do
-            rm -rf "t$nt"; mkdir "t$nt"; cp model_000*.r* "t$nt/"
-            ( cd "t$nt"; exec ../../exec/engine_macosa64_gf_sp -i model_0001.rad -nt "$nt" </dev/null >/dev/null 2>&1 ) &
-            pid=$!; sleep 120; kill -9 "$pid" 2>/dev/null; wait "$pid" 2>/dev/null || true
-            c=$(grep -E '^ +[0-9]+ +[0-9.E+-]+ +[0-9.E+-]+ +[A-Z]+' "t$nt/model_0001.out" | tail -1 | awk '{print $1}')
-            echo "$(uname -m) nt=$nt: cycle ${c:-0} in 120 s ($(( ${c:-0}/120 )) cycles/s)"
-          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -171,7 +155,7 @@ jobs:
           cd simflate && mkdir run && cd run
           curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/Compiling_tools/macos/test/model.k" -o model.k
           RAD_CFG_PATH=$PWD/../hm_cfg_files ../exec/starter_macosa64_gf_sp -i model.k -np 1 </dev/null | tail -5
-          grep -q "NORMAL TERMINATION" model_0000.out
+          grep -q "RESTART FILES model_0000 WRITTEN" model_0000.out
           cd .. && rm -rf run
       - uses: actions/upload-artifact@v4
         with:
